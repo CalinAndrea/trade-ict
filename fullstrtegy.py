@@ -1,17 +1,32 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import matplotlib.lines as mlines
-from matplotlib.patches import Rectangle
+from datetime import time
 
-# === Load 5-minute CSV ===
+# === Load 5-minute data ===
 df_5m = pd.read_csv("CME_MINI_NQ1!, 5 (3).csv")
 df_5m['timestamp'] = pd.to_datetime(df_5m['time'])
 df_5m = df_5m.sort_values('timestamp').reset_index(drop=True)
 df_5m['bar_index'] = np.arange(len(df_5m))
 
-# === ZigZag ===
+# === Helper Functions ===
+def localize_if_needed(series, tz='America/New_York'):
+    if series.dt.tz is None:
+        return series.dt.tz_localize(tz)
+    else:
+        return series.dt.tz_convert(tz)
+
+def detect_fvgs_3candle(df, min_gap=5.0):
+    out = []
+    for i in range(len(df) - 2):
+        A, C = df.iloc[i], df.iloc[i + 2]
+        if A.high < C.low and (C.low - A.high) >= min_gap:
+            out.append({'start_time': A.timestamp, 'end_time': C.timestamp,
+                        'level1': A.high, 'level2': C.low, 'type': 'UP'})
+        elif A.low > C.high and (A.low - C.high) >= min_gap:
+            out.append({'start_time': A.timestamp, 'end_time': C.timestamp,
+                        'level1': A.low, 'level2': C.high, 'type': 'DOWN'})
+    return pd.DataFrame(out)
+
 def zigzag(df, threshold=50.0):
     pivots = []
     direction = None
@@ -44,7 +59,6 @@ def zigzag(df, threshold=50.0):
                        'price': pivot_price, 'timestamp': pivot_time})
     return pd.DataFrame(pivots)
 
-# === Stop Hunt ===
 def detect_multibar_stop_hunt(df, pivots, tolerance=5.0, lookahead=3):
     hunts = []
     for _, pivot in pivots.iterrows():
@@ -68,114 +82,110 @@ def detect_multibar_stop_hunt(df, pivots, tolerance=5.0, lookahead=3):
                     hunts.append({'bar_index': reversal.iloc[0]['bar_index'], 'price': pivot_price, 'type': 'LONG'})
     return pd.DataFrame(hunts)
 
-# === FVGs ===
-def detect_fvgs_3candle(df, min_gap=5.0):
-    out = []
-    for i in range(len(df) - 2):
-        A, C = df.iloc[i], df.iloc[i + 2]
-        if A.high < C.low and (C.low - A.high) >= min_gap:
-            out.append({'start_time': A.timestamp, 'end_time': C.timestamp,
-                        'level1': A.high, 'level2': C.low, 'type': 'UP'})
-        elif A.low > C.high and (A.low - C.high) >= min_gap:
-            out.append({'start_time': A.timestamp, 'end_time': C.timestamp,
-                        'level1': A.low, 'level2': C.high, 'type': 'DOWN'})
-    return pd.DataFrame(out)
+# === Weekly Simulation ===
+weekly_trades = []
+available_dates = df_5m['timestamp'].dt.date.unique()
 
-def mark_mitigated_fvgs(fvg_df, df):
-    mitigated = []
-    for _, row in fvg_df.iterrows():
-        post = df[df['timestamp'] > row['end_time']]
-        if row['type'] == 'UP':
-            mitigated.append((post['close'] < row['level2']).any())
-        else:
-            mitigated.append((post['close'] > row['level2']).any())
-    fvg_df['mitigated'] = mitigated
-    return fvg_df
+for day in available_dates:
+    daily_df = df_5m[df_5m['timestamp'].dt.date == day].copy()
+    daily_df.reset_index(drop=True, inplace=True)
+    daily_df['bar_index'] = np.arange(len(daily_df))
+    daily_df['timestamp'] = localize_if_needed(pd.to_datetime(daily_df['timestamp']))
 
-# === Order Blocks ===
-def detect_order_blocks(df, pivots, lookahead=5):
-    ob_zones = []
-    for _, pivot in pivots.iterrows():
-        pivot_idx = pivot['bar_index']
-        pivot_price = pivot['price']
-        pivot_type = pivot['type']
-        future_bars = df[(df['bar_index'] > pivot_idx) & (df['bar_index'] <= pivot_idx + lookahead)]
-        if pivot_type == 'HIGH' and (future_bars['high'] > pivot_price).any():
-            pre_break = df[df['bar_index'] < future_bars.iloc[0]['bar_index']].tail(5)
-            candidates = pre_break[pre_break['open'] < pre_break['close']]
-            if not candidates.empty:
-                ob = candidates.iloc[-1]
-                ob_zones.append({
-                    'type': 'bearish', 'timestamp': ob['timestamp'],
-                    'open': ob['open'], 'close': ob['close'],
-                    'high': ob['high'], 'low': ob['low']
-                })
-        elif pivot_type == 'LOW' and (future_bars['low'] < pivot_price).any():
-            pre_break = df[df['bar_index'] < future_bars.iloc[0]['bar_index']].tail(5)
-            candidates = pre_break[pre_break['open'] > pre_break['close']]
-            if not candidates.empty:
-                ob = candidates.iloc[-1]
-                ob_zones.append({
-                    'type': 'bullish', 'timestamp': ob['timestamp'],
-                    'open': ob['open'], 'close': ob['close'],
-                    'high': ob['high'], 'low': ob['low']
-                })
-    return pd.DataFrame(ob_zones)
+    fvgs = detect_fvgs_3candle(daily_df)
+    fvgs['midpoint'] = (fvgs['level1'] + fvgs['level2']) / 2
+    fvgs['fvg_start'] = localize_if_needed(pd.to_datetime(fvgs['start_time']))
+    fvgs['fvg_end'] = localize_if_needed(pd.to_datetime(fvgs['end_time']))
 
-# === Run All ===
-pivots = zigzag(df_5m)
-stop_hunts = detect_multibar_stop_hunt(df_5m, pivots)
-fvgs = detect_fvgs_3candle(df_5m)
-fvgs = mark_mitigated_fvgs(fvgs, df_5m)
-order_blocks = detect_order_blocks(df_5m, pivots)
+    pivots = zigzag(daily_df)
+    stop_hunts = detect_multibar_stop_hunt(daily_df, pivots)
+    stop_hunts['timestamp'] = stop_hunts['bar_index'].apply(lambda i: daily_df.loc[daily_df['bar_index'] == i, 'timestamp'].values[0])
+    stop_hunts['timestamp'] = localize_if_needed(pd.to_datetime(stop_hunts['timestamp']))
 
-# === Plot ===
-fig, ax = plt.subplots(figsize=(20, 10))
+    for _, hunt in stop_hunts.iterrows():
+        direction = hunt['type']
+        hunt_time = hunt['timestamp']
+        future_bars = daily_df[daily_df['timestamp'] > hunt_time]
+        if future_bars.empty:
+            continue
 
-# Candles
-for _, row in df_5m.iterrows():
-    t = mdates.date2num(row['timestamp'])
-    color = 'green' if row['close'] >= row['open'] else 'red'
-    ax.add_line(mlines.Line2D((t, t), (row['low'], row['high']), color=color))
-    rect = Rectangle((t - 0.002, min(row['open'], row['close'])), 0.004,
-                     abs(row['open'] - row['close']), facecolor=color, edgecolor=color)
-    ax.add_patch(rect)
+        for _, candle in future_bars.iterrows():
+            candle_time = candle['timestamp']
+            if not time(8,0) <= candle_time.time() <= time(15,0):
+                continue
 
-# Pivots
-for _, row in pivots.iterrows():
-    x = mdates.date2num(row['timestamp'])
-    ax.plot(x, row['price'], marker='^' if row['type'] == 'HIGH' else 'v',
-            color='green' if row['type'] == 'HIGH' else 'red', markersize=10)
+            expected_type = 'UP' if direction == 'LONG' else 'DOWN'
+            valid_fvgs = fvgs[(fvgs['type'] == expected_type) & (fvgs['fvg_end'] < candle_time)]
 
-# Stop Hunts
-for _, row in stop_hunts.iterrows():
-    x = mdates.date2num(df_5m.loc[df_5m['bar_index'] == row['bar_index'], 'timestamp'].values[0])
-    ax.plot(x, row['price'], marker='x' if row['type'] == 'SHORT' else '+',
-            color='purple' if row['type'] == 'SHORT' else 'blue', markersize=10)
+            for _, fvg in valid_fvgs.iterrows():
+                midpoint = fvg['midpoint']
+                if candle['low'] <= midpoint <= candle['high']:
+                    pre_entry = daily_df[(daily_df['timestamp'] > fvg['fvg_end']) & (daily_df['timestamp'] < candle_time)]
+                    if direction == 'LONG' and (pre_entry['close'] < midpoint).any():
+                        continue
+                    if direction == 'SHORT' and (pre_entry['close'] > midpoint).any():
+                        continue
 
-# FVGs
-for _, row in fvgs.iterrows():
-    x_start = mdates.date2num(row['start_time'])
-    x_end = mdates.date2num(row['end_time'])
-    width = (x_end - x_start) * 5
-    y1, y2 = sorted([row['level1'], row['level2']])
-    color = 'blue' if row['mitigated'] else ('green' if row['type'] == 'UP' else 'red')
-    rect = Rectangle((x_start, y1), width, y2 - y1, color=color, alpha=0.3)
-    ax.add_patch(rect)
+                    move = daily_df[(daily_df['timestamp'] >= hunt_time) & (daily_df['timestamp'] <= candle_time)]
+                    if move.empty:
+                        continue
+                    high = move['high'].max()
+                    low = move['low'].min()
+                    fib_50 = (high + low) / 2
+                    if direction == 'LONG' and midpoint > fib_50:
+                        continue
+                    if direction == 'SHORT' and midpoint < fib_50:
+                        continue
 
-# Order Blocks
-for _, row in order_blocks.iterrows():
-    x_start = mdates.date2num(row['timestamp'])
-    y1, y2 = sorted([row['low'], row['high']])
-    color = 'orange' if row['type'] == 'bearish' else 'yellow'
-    rect = Rectangle((x_start, y1), 0.04, y2 - y1, color=color, alpha=0.35, linestyle='--')
-    ax.add_patch(rect)
+                    entry = midpoint
+                    sl = entry - 20 if direction == 'LONG' else entry + 20
+                    tp = entry + 40 if direction == 'LONG' else entry - 40
 
-# Format
-ax.xaxis_date()
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
-plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
-ax.set_title("Chart: Candles + ZigZag + Stop Hunts + FVGs + Order Blocks")
-plt.grid()
-plt.tight_layout()
-plt.show()
+                    outcome = 0
+                    future_check = daily_df[daily_df['timestamp'] >= candle_time]
+                    for _, b in future_check.iterrows():
+                        if direction == 'LONG':
+                            if b['low'] <= sl:
+                                outcome = -20
+                                break
+                            if b['high'] >= tp:
+                                outcome = 40
+                                break
+                        else:
+                            if b['high'] >= sl:
+                                outcome = -20
+                                break
+                            if b['low'] <= tp:
+                                outcome = 40
+                                break
+
+                    weekly_trades.append({
+                        "date": candle_time.date(),
+                        "timestamp": candle_time,
+                        "direction": direction,
+                        "entry": round(entry, 2),
+                        "sl": round(sl, 2),
+                        "tp": round(tp, 2),
+                        "PnL": outcome,
+                        "fvg_start": fvg['fvg_start'],
+                        "fvg_end": fvg['fvg_end']
+                    })
+                    break
+            else:
+                continue
+            break
+
+weekly_df = pd.DataFrame(weekly_trades)
+
+# === Display top 10 trade details ===
+print("Top 20 Trades:")
+print(weekly_df.head(20).to_string(index=False))
+
+# === Statistics ===
+total_trades = len(weekly_df)
+win_trades = (weekly_df['PnL'] > 0).sum()
+loss_trades = (weekly_df['PnL'] < 0).sum()
+win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
+net_pnl = weekly_df['PnL'].sum()
+
+print(f"📊 Stats:\nTotal Trades: {total_trades}\nWins: {win_trades}\nLosses: {loss_trades}\nWin Rate: {win_rate:.2f}%\nNet PnL: {net_pnl} points")

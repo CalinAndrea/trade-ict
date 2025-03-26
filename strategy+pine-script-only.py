@@ -96,7 +96,7 @@ def detect_fvgs(df, min_gap=5.0):
     return pd.DataFrame(out)
 
 # === Liquidity Pool Detection and Mitigation Check ===
-def detect_liquidity_pools(pivots, df, tolerance=8.0, min_count=2):
+def detect_liquidity_pools(pivots, df, fvgs, tolerance=8.0, min_count=2):
     pools_raw = []
     for i in range(len(pivots)):
         base = pivots.iloc[i]
@@ -122,27 +122,37 @@ def detect_liquidity_pools(pivots, df, tolerance=8.0, min_count=2):
             'type': base['type']
         })
 
-    # Mitigation check
     mitigated_pools = []
     last_time = df[df['timestamp'].dt.time <= time(16, 0)].iloc[-1]['timestamp']
 
     for pool in pools_raw:
         mitigated = False
         end_time = last_time
-        reversed = False
+        reversed_sweep = False
+        confluence = False
 
         for _, bar in df[df['timestamp'] > pool['start_time']].iterrows():
             if pool['type'] == 'HIGH' and bar['high'] > pool['price']:
                 mitigated = True
                 end_time = bar['timestamp']
                 if bar['close'] < pool['price']:
-                    reversed = True
+                    reversed_sweep = True
                 break
             elif pool['type'] == 'LOW' and bar['low'] < pool['price']:
                 mitigated = True
                 end_time = bar['timestamp']
                 if bar['close'] > pool['price']:
-                    reversed = True
+                    reversed_sweep = True
+                break
+
+        # === Check for confluence with unmitigated FVGs ===
+        relevant_fvgs = fvgs[(fvgs['start_time'] <= end_time) & (~fvgs['mitigated'])]
+        for _, fvg in relevant_fvgs.iterrows():
+            if pool['type'] == 'HIGH' and fvg['type'] == 'DOWN' and abs(fvg['midpoint'] - pool['price']) <= tolerance:
+                confluence = True
+                break
+            elif pool['type'] == 'LOW' and fvg['type'] == 'UP' and abs(fvg['midpoint'] - pool['price']) <= tolerance:
+                confluence = True
                 break
 
         mitigated_pools.append({
@@ -151,7 +161,8 @@ def detect_liquidity_pools(pivots, df, tolerance=8.0, min_count=2):
             'price': pool['price'],
             'type': pool['type'],
             'mitigated': mitigated,
-            'confluence': reversed
+            'reversed': reversed_sweep,
+            'confluence': confluence
         })
 
     return pd.DataFrame(mitigated_pools)
@@ -159,7 +170,7 @@ def detect_liquidity_pools(pivots, df, tolerance=8.0, min_count=2):
 # === Run detections ===
 pivots = zigzag(df)
 fvgs = detect_fvgs(df)
-liq_pools = detect_liquidity_pools(pivots, df)
+liq_pools = detect_liquidity_pools(pivots, df, fvgs)
 
 # === Export Pine Script ===
 def export_overlay_pine(pivots, fvgs, liq_pools, filename="pine_overlay.txt"):
@@ -188,6 +199,8 @@ def export_overlay_pine(pivots, fvgs, liq_pools, filename="pine_overlay.txt"):
             ts_end = row['end_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
             y = row['price']
             color = 'green' if row['type'] == 'HIGH' else 'red'
+            if row['confluence']:
+                color = 'blue'  # highlight confluence differently
             thickness = '1' if row['mitigated'] else '2'
             f.write(f"line.new(x1=timestamp(\"{ts_start}\"), y1={y}, x2=timestamp(\"{ts_end}\"), y2={y}, xloc=xloc.bar_time, extend=extend.none, color=color.{color}, style=line.style_solid, width={thickness})\n")
 

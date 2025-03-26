@@ -167,13 +167,66 @@ def detect_liquidity_pools(pivots, df, fvgs, tolerance=8.0, min_count=2):
 
     return pd.DataFrame(mitigated_pools)
 
+# === Fib Zone Detection with Golden Pocket ===
+def detect_fib_zones(pivots, df, min_range=40.0):
+    fib_zones = []
+    if len(pivots) < 2:
+        return pd.DataFrame(columns=['start_time', 'end_time', 'golden_high', 'golden_low', 'direction'])
+
+    for i in range(len(pivots) - 1):
+        p1 = pivots.iloc[i]
+        p2 = pivots.iloc[i+1]
+        if p1['type'] == 'LOW' and p2['type'] == 'HIGH':
+            low, high = p1['price'], p2['price']
+            direction = 'UP'
+        elif p1['type'] == 'HIGH' and p2['type'] == 'LOW':
+            high, low = p1['price'], p2['price']
+            direction = 'DOWN'
+        else:
+            continue
+
+        if abs(high - low) < min_range:
+            continue
+
+        golden_low = high - (high - low) * 0.79
+        golden_high = high - (high - low) * 0.62
+        if direction == 'DOWN':
+            golden_low = low + (high - low) * 0.62
+            golden_high = low + (high - low) * 0.79
+
+        # Mitigation logic
+        midpoint = (golden_high + golden_low) / 2
+        mitigated = False
+        end_time = df.iloc[-1]['timestamp']
+        for _, bar in df[df['timestamp'] > p2['timestamp']].iterrows():
+            if direction == 'UP' and bar['low'] <= midpoint:
+                mitigated = True
+                end_time = bar['timestamp']
+                break
+            elif direction == 'DOWN' and bar['high'] >= midpoint:
+                mitigated = True
+                end_time = bar['timestamp']
+                break
+
+        fib_zones.append({
+            'start_time': p1['timestamp'],
+            'end_time': end_time,
+            'golden_high': golden_high,
+            'golden_low': golden_low,
+            'direction': direction,
+            'mitigated': mitigated
+        })
+
+    return pd.DataFrame(fib_zones)
+
 # === Run detections ===
 pivots = zigzag(df)
 fvgs = detect_fvgs(df)
+fib_zones = detect_fib_zones(pivots, df)
 liq_pools = detect_liquidity_pools(pivots, df, fvgs)
 
 # === Export Pine Script ===
-def export_overlay_pine(pivots, fvgs, liq_pools, filename="pine_overlay.txt"):
+def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, filename="pine_overlay.txt"):
     with open(filename, "w") as f:
         f.write("//@version=6\n")
         f.write("indicator(\"ICT Pivots, Stop Hunts, FVGs, Liquidity Pools\", overlay=true)\n\n")
@@ -204,6 +257,14 @@ def export_overlay_pine(pivots, fvgs, liq_pools, filename="pine_overlay.txt"):
             thickness = '1' if row['mitigated'] else '2'
             f.write(f"line.new(x1=timestamp(\"{ts_start}\"), y1={y}, x2=timestamp(\"{ts_end}\"), y2={y}, xloc=xloc.bar_time, extend=extend.none, color=color.{color}, style=line.style_solid, width={thickness})\n")
 
+        for _, row in fib_zones.iterrows():
+            ts_start = row['start_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
+            ts_end = row['end_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
+            color = 'green' if row['direction'] == 'UP' else 'red'
+            if row['mitigated']:
+                color = 'gray'
+            f.write(f"box.new(left=timestamp(\"{ts_start}\"), right=timestamp(\"{ts_end}\"), top={row['golden_high']}, bottom={row['golden_low']}, xloc=xloc.bar_time, border_color=color.{color}, border_style=line.style_dashed, bgcolor=color.new(color.{color}, 80))\n")
+
 # Export
-export_overlay_pine(pivots, fvgs, liq_pools)
+export_overlay_pine(pivots, fvgs, liq_pools, fib_zones)
 print("✅ Pine script saved.")

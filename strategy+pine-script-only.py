@@ -67,34 +67,6 @@ def zigzag(df, threshold=20.0):
 
     return pd.DataFrame(pivots)
 
-# === Stop Hunt Detection ===
-def detect_multibar_stop_hunt(df, pivots, tolerance=15.0, lookahead=3):
-    hunts = []
-    for _, pivot in pivots.iterrows():
-        pivot_index = pivot['bar_index']
-        pivot_price = pivot['price']
-        pivot_type = pivot['type']
-        df_future = df[(df['bar_index'] > pivot_index) & (df['bar_index'] <= pivot_index + lookahead)]
-        if pivot_type == 'HIGH':
-            exceed = df_future[df_future['high'] > pivot_price + tolerance]
-            if not exceed.empty:
-                post = df_future[df_future['bar_index'] >= exceed.iloc[0]['bar_index']]
-                reversal = post[post['close'] < pivot_price]
-                if not reversal.empty:
-                    hunts.append({'bar_index': reversal.iloc[0]['bar_index'], 'price': pivot_price, 'type': 'SHORT'})
-        else:
-            exceed = df_future[df_future['low'] < pivot_price - tolerance]
-            if not exceed.empty:
-                post = df_future[df_future['bar_index'] >= exceed.iloc[0]['bar_index']]
-                reversal = post[post['close'] > pivot_price]
-                if not reversal.empty:
-                    hunts.append({'bar_index': reversal.iloc[0]['bar_index'], 'price': pivot_price, 'type': 'LONG'})
-    stop_hunts = pd.DataFrame(hunts)
-    if not stop_hunts.empty:
-        stop_hunts['timestamp'] = stop_hunts['bar_index'].apply(lambda i: df.loc[df['bar_index'] == i, 'timestamp'].values[0])
-        stop_hunts['timestamp'] = pd.to_datetime(stop_hunts['timestamp'], utc=True).dt.tz_convert("America/New_York")
-    return stop_hunts
-
 # === FVG Detection with Mitigation ===
 def detect_fvgs(df, min_gap=5.0):
     out = []
@@ -186,12 +158,11 @@ def detect_liquidity_pools(pivots, df, tolerance=8.0, min_count=2):
 
 # === Run detections ===
 pivots = zigzag(df)
-stop_hunts = detect_multibar_stop_hunt(df, pivots)
 fvgs = detect_fvgs(df)
 liq_pools = detect_liquidity_pools(pivots, df)
 
 # === Export Pine Script ===
-def export_overlay_pine(pivots, stop_hunts, fvgs, liq_pools, filename="pine_overlay.txt"):
+def export_overlay_pine(pivots, fvgs, liq_pools, filename="pine_overlay.txt"):
     with open(filename, "w") as f:
         f.write("//@version=6\n")
         f.write("indicator(\"ICT Pivots, Stop Hunts, FVGs, Liquidity Pools\", overlay=true)\n\n")
@@ -202,15 +173,6 @@ def export_overlay_pine(pivots, stop_hunts, fvgs, liq_pools, filename="pine_over
             shape = 'labeldown' if row['type'] == 'HIGH' else 'labelup'
             location = 'abovebar' if row['type'] == 'HIGH' else 'belowbar'
             color = 'lime' if row['type'] == 'HIGH' else 'orange'
-            ts_str = ts.strftime('%Y-%m-%dT%H:%M:%S-04:00')
-            f.write(f"plotshape(time == timestamp(\"{ts_str}\"), location=location.{location}, style=shape.{shape}, text=\"{label}\", color=color.{color}, textcolor=color.white)\n")
-
-        for _, row in stop_hunts.iterrows():
-            ts = pd.to_datetime(row['timestamp'])
-            label = 'Stop Hunt'
-            shape = 'triangleup' if row['type'] == 'LONG' else 'triangledown'
-            location = 'belowbar' if row['type'] == 'LONG' else 'abovebar'
-            color = 'blue' if row['type'] == 'LONG' else 'purple'
             ts_str = ts.strftime('%Y-%m-%dT%H:%M:%S-04:00')
             f.write(f"plotshape(time == timestamp(\"{ts_str}\"), location=location.{location}, style=shape.{shape}, text=\"{label}\", color=color.{color}, textcolor=color.white)\n")
 
@@ -230,5 +192,5 @@ def export_overlay_pine(pivots, stop_hunts, fvgs, liq_pools, filename="pine_over
             f.write(f"line.new(x1=timestamp(\"{ts_start}\"), y1={y}, x2=timestamp(\"{ts_end}\"), y2={y}, xloc=xloc.bar_time, extend=extend.none, color=color.{color}, style=line.style_solid, width={thickness})\n")
 
 # Export
-export_overlay_pine(pivots, stop_hunts, fvgs, liq_pools)
+export_overlay_pine(pivots, fvgs, liq_pools)
 print("✅ Pine script saved.")

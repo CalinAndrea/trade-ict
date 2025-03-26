@@ -1,3 +1,8 @@
+Features:
+1. Pivots high/low
+2. FVGs mitigated or not
+3. Liquidity sweep BSL, SSL mitigated or not
+
 What does 'confluence': reversed originally mean?
 This flag was first introduced in stop-hunt-based liquidity detection logic. Here's what it tracked:
 
@@ -13,3 +18,4 @@ What does 'confluence' mean now in your current version?
 You updated the logic to redefine confluence as:
 
 "Is there an overlap between a liquidity pool and an unmitigated opposite-direction FVG (within tolerance)?"
+

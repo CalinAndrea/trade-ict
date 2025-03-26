@@ -2,6 +2,7 @@ Features:
 1. Pivots high/low
 2. FVGs mitigated or not
 3. Liquidity sweep BSL, SSL mitigated or not
+4. Fibonaci levels + golden pocket area highlighted (dashed rectangle)
 
 What does 'confluence': reversed originally mean?
 This flag was first introduced in stop-hunt-based liquidity detection logic. Here's what it tracked:

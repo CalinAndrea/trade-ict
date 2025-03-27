@@ -223,6 +223,119 @@ def reduce_to_major_swings(pivots):
 
     return pd.DataFrame(reduced)
 
+def detect_order_blocks(df, pivots, min_range=30):
+    blocks = []
+    for i in range(1, len(pivots)):
+        prev = pivots.iloc[i - 1]
+        curr = pivots.iloc[i]
+        range_size = abs(curr['price'] - prev['price'])
+        if range_size < min_range:
+            continue
+
+        range_df = df[(df.index >= prev['timestamp']) & (df.index <= curr['timestamp'])]
+
+        if prev['type'] == 'LOW' and curr['type'] == 'HIGH':
+            ob_type = 'BULLISH'
+            ob_candle = range_df.loc[range_df['low'].idxmin()]
+        elif prev['type'] == 'HIGH' and curr['type'] == 'LOW':
+            ob_type = 'BEARISH'
+            ob_candle = range_df.loc[range_df['high'].idxmax()]
+        else:
+            continue
+
+        price = (ob_candle['open'] + ob_candle['close']) / 2
+        ob_time = ob_candle.name
+
+        # Look for the next opposite swing to mark the end of the move
+        future_pivots = pivots[pivots['timestamp'] > curr['timestamp']]
+        opposite_type = 'LOW' if curr['type'] == 'HIGH' else 'HIGH'
+        next_swing = future_pivots[future_pivots['type'] == opposite_type]
+
+        if next_swing.empty:
+            continue
+
+        swing_confirm_time = next_swing.iloc[0]['timestamp']
+        mitigation_df = df[df.index > swing_confirm_time]
+
+        mitigated = False
+        end_time = df.iloc[-1].name
+        for _, bar in mitigation_df.iterrows():
+            if ob_type == "BULLISH" and bar['low'] <= price:
+                mitigated = True
+                end_time = bar.name
+                break
+            elif ob_type == "BEARISH" and bar['high'] >= price:
+                mitigated = True
+                end_time = bar.name
+                break
+
+        blocks.append({
+            'start_time': ob_time,
+            'end_time': end_time,
+            'price': price,
+            'type': ob_type,
+            'mitigated': mitigated
+        })
+
+    return pd.DataFrame(blocks)
+
+def detect_structure(pivots, bos_buffer=2.0, choch_min_move=15):
+    structure = []
+    trend = None
+    last_hh = None
+    last_ll = None
+
+    for i in range(1, len(pivots)):
+        curr = pivots.iloc[i]
+        prev = pivots.iloc[i - 1]
+
+        # Skip if same type (not alternating)
+        if curr["type"] == prev["type"]:
+            continue
+
+        if trend is None:
+            trend = "UP" if curr["type"] == "HIGH" else "DOWN"
+            if trend == "UP":
+                last_ll = prev["price"]
+            else:
+                last_hh = prev["price"]
+            continue
+
+        if trend == "UP":
+            if curr["type"] == "LOW" and curr["price"] < last_ll - choch_min_move:
+                structure.append({
+                    "timestamp": curr["timestamp"],
+                    "bar_index": i,
+                    "type": "CHoCH"
+                })
+                trend = "DOWN"
+                last_hh = prev["price"]
+            elif curr["type"] == "HIGH" and curr["price"] > last_hh + bos_buffer:
+                structure.append({
+                    "timestamp": curr["timestamp"],
+                    "bar_index": i,
+                    "type": "BOS"
+                })
+                last_hh = curr["price"]
+
+        elif trend == "DOWN":
+            if curr["type"] == "HIGH" and curr["price"] > last_hh + choch_min_move:
+                structure.append({
+                    "timestamp": curr["timestamp"],
+                    "bar_index": i,
+                    "type": "CHoCH"
+                })
+                trend = "UP"
+                last_ll = prev["price"]
+            elif curr["type"] == "LOW" and curr["price"] < last_ll - bos_buffer:
+                structure.append({
+                    "timestamp": curr["timestamp"],
+                    "bar_index": i,
+                    "type": "BOS"
+                })
+                last_ll = curr["price"]
+
+    return pd.DataFrame(structure)
 
 
 # === Run detections ===
@@ -235,9 +348,13 @@ pivots = reduce_to_major_swings(swings)
 fvgs = detect_fvgs(df)
 fib_zones = detect_fib_zones(pivots, df)
 liq_pools = detect_liquidity_pools(pivots, df, fvgs)
+order_blocks = detect_order_blocks(df, pivots)
+structure = detect_structure(pivots, bos_buffer=10, choch_min_move=15)
 
+print("📊 Structure points:", structure)
+print("✅ Total BOS/CHoCH:", len(structure))
 # === Export Pine Script ===
-def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, filename="pine_overlay.txt"):
+def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, structure, filename="pine_overlay.txt"):
     with open(filename, "w") as f:
         f.write("//@version=6\n")
         f.write("indicator(\"ICT Pivots, Stop Hunts, FVGs, Liquidity Pools\", overlay=true)\n\n")
@@ -276,6 +393,20 @@ def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, filename="pine_overl
                 color = 'gray'
             f.write(f"box.new(left=timestamp(\"{ts_start}\"), right=timestamp(\"{ts_end}\"), top={row['golden_high']}, bottom={row['golden_low']}, xloc=xloc.bar_time, border_color=color.{color}, border_style=line.style_dashed, bgcolor=color.new(color.{color}, 80))\n")
 
+        for _, row in structure.iterrows():
+            ts = row['timestamp'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            color = "blue" if row['type'] == "BOS" else "orange"
+            y_val = pivots.iloc[row['bar_index']]['price']
+            f.write(f"label.new(timestamp(\"{ts}\"), {y_val}, \"{row['type']}\", xloc=xloc.bar_time, style=label.style_label_down, color=color.{color}, textcolor=color.white)\n")
+
+        # for _, row in order_blocks.iterrows():
+        #     ts_start = row['start_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+        #     ts_end = row['end_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+        #     color = "gray" if row['mitigated'] else ("green" if row['type'] == "BULLISH" else "red")
+        #     top = row['price'] + 1
+        #     bottom = row['price'] - 1
+        #     f.write(f"box.new(left=timestamp(\"{ts_start}\"), right=timestamp(\"{ts_end}\"), top={top}, bottom={bottom}, xloc=xloc.bar_time, extend=extend.none, border_color=color.{color}, bgcolor=color.new(color.{color}, 85))\n")
+
 # Export
-export_overlay_pine(pivots, fvgs, liq_pools, fib_zones)
+export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, structure)
 print("✅ Pine script saved.")

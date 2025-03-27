@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import time
 from collections import deque
+from scipy.signal import find_peaks
 
 # === Load 5-minute data ===
 df = pd.read_csv("CME_MINI_NQ1!, 5 (7).csv")
@@ -9,63 +10,26 @@ df['timestamp'] = pd.to_datetime(df['time'], utc=True)
 df = df.sort_values('timestamp').reset_index(drop=True)
 df['bar_index'] = np.arange(len(df))
 df['timestamp'] = df['timestamp'].dt.tz_convert("America/New_York")
+df = df.set_index("timestamp")  # Ensure timestamp is the index
 
-# === Zigzag detection ===
-def zigzag(df, threshold=20.0):
-    if df.empty:
-        return pd.DataFrame(columns=['bar_index','type','price','timestamp'])
 
-    pivots = []
-    direction = None
-    last_pivot = df.iloc[0]
-    swing_high = last_pivot['high']
-    swing_low = last_pivot['low']
-    swing_idx = last_pivot['bar_index']
-    swing_time = last_pivot['timestamp']
+def detect_swing_highs_lows(df, distance=2, prominence=2):
+    highs = df['high'].values
+    lows = df['low'].values
 
-    for i in range(1, len(df)):
-        curr = df.iloc[i]
+    high_peaks, _ = find_peaks(highs, distance=distance, prominence=prominence)
+    low_peaks, _ = find_peaks(-lows, distance=distance, prominence=prominence)
 
-        if direction is None:
-            if curr['close'] > last_pivot['close'] + threshold:
-                direction = 'UP'
-                swing_low = last_pivot['low']
-                swing_idx = last_pivot['bar_index']
-                swing_time = last_pivot['timestamp']
-            elif curr['close'] < last_pivot['close'] - threshold:
-                direction = 'DOWN'
-                swing_high = last_pivot['high']
-                swing_idx = last_pivot['bar_index']
-                swing_time = last_pivot['timestamp']
-        elif direction == 'UP':
-            if curr['high'] > swing_high:
-                swing_high = curr['high']
-                swing_idx = curr['bar_index']
-                swing_time = curr['timestamp']
-            elif curr['close'] < swing_high - threshold:
-                pivots.append({'bar_index': swing_idx, 'type': 'HIGH', 'price': swing_high, 'timestamp': swing_time})
-                direction = 'DOWN'
-                swing_low = curr['low']
-                swing_idx = curr['bar_index']
-                swing_time = curr['timestamp']
-        elif direction == 'DOWN':
-            if curr['low'] < swing_low:
-                swing_low = curr['low']
-                swing_idx = curr['bar_index']
-                swing_time = curr['timestamp']
-            elif curr['close'] > swing_low + threshold:
-                pivots.append({'bar_index': swing_idx, 'type': 'LOW', 'price': swing_low, 'timestamp': swing_time})
-                direction = 'UP'
-                swing_high = curr['high']
-                swing_idx = curr['bar_index']
-                swing_time = curr['timestamp']
+    swing = pd.Series(data=np.nan, index=df.index, name="HighLow")
+    level = pd.Series(data=np.nan, index=df.index, name="Level")
 
-    if direction:
-        final_type = 'HIGH' if direction == 'UP' else 'LOW'
-        final_price = swing_high if direction == 'UP' else swing_low
-        pivots.append({'bar_index': swing_idx, 'type': final_type, 'price': final_price, 'timestamp': swing_time})
+    swing.iloc[high_peaks] = 1
+    swing.iloc[low_peaks] = -1
+    level.iloc[high_peaks] = df['high'].iloc[high_peaks]
+    level.iloc[low_peaks] = df['low'].iloc[low_peaks]
 
-    return pd.DataFrame(pivots)
+    result = pd.concat([swing, level], axis=1)
+    return result
 
 # === FVG Detection with Mitigation ===
 def detect_fvgs(df, min_gap=5.0):
@@ -73,9 +37,9 @@ def detect_fvgs(df, min_gap=5.0):
     for i in range(len(df) - 2):
         A, C = df.iloc[i], df.iloc[i + 2]
         if A.high < C.low and (C.low - A.high) >= min_gap:
-            out.append({'start_time': A.timestamp, 'end_index': i + 2, 'level1': A.high, 'level2': C.low, 'type': 'UP'})
+            out.append({'start_time': A.name, 'end_index': i + 2, 'level1': A.high, 'level2': C.low, 'type': 'UP'})
         elif A.low > C.high and (A.low - C.high) >= min_gap:
-            out.append({'start_time': A.timestamp, 'end_index': i + 2, 'level1': A.low, 'level2': C.high, 'type': 'DOWN'})
+            out.append({'start_time': A.name, 'end_index': i + 2, 'level1': A.low, 'level2': C.high, 'type': 'DOWN'})
 
     for fvg in out:
         midpoint = (fvg['level1'] + fvg['level2']) / 2
@@ -85,14 +49,14 @@ def detect_fvgs(df, min_gap=5.0):
         for j in range(fvg['end_index'] + 1, len(df)):
             bar = df.iloc[j]
             if fvg['type'] == 'UP' and bar['low'] <= midpoint:
-                mitigated_ts = bar['timestamp']
+                mitigated_ts = bar.name
                 fvg['mitigated'] = True
                 break
             elif fvg['type'] == 'DOWN' and bar['high'] >= midpoint:
-                mitigated_ts = bar['timestamp']
+                mitigated_ts = bar.name
                 fvg['mitigated'] = True
                 break
-        fvg['end_time'] = mitigated_ts if mitigated_ts else df.iloc[-1]['timestamp']
+        fvg['end_time'] = mitigated_ts if mitigated_ts else df.iloc[-1].name
     return pd.DataFrame(out)
 
 # === Liquidity Pool Detection and Mitigation Check ===
@@ -123,7 +87,7 @@ def detect_liquidity_pools(pivots, df, fvgs, tolerance=8.0, min_count=2):
         })
 
     mitigated_pools = []
-    last_time = df[df['timestamp'].dt.time <= time(16, 0)].iloc[-1]['timestamp']
+    last_time = df[df.index.time <= time(16, 0)].iloc[-1].name
 
     for pool in pools_raw:
         mitigated = False
@@ -131,21 +95,20 @@ def detect_liquidity_pools(pivots, df, fvgs, tolerance=8.0, min_count=2):
         reversed_sweep = False
         confluence = False
 
-        for _, bar in df[df['timestamp'] > pool['start_time']].iterrows():
+        for _, bar in df[df.index > pool['start_time']].iterrows():
             if pool['type'] == 'HIGH' and bar['high'] > pool['price']:
                 mitigated = True
-                end_time = bar['timestamp']
+                end_time = bar.name
                 if bar['close'] < pool['price']:
                     reversed_sweep = True
                 break
             elif pool['type'] == 'LOW' and bar['low'] < pool['price']:
                 mitigated = True
-                end_time = bar['timestamp']
+                end_time = bar.name
                 if bar['close'] > pool['price']:
                     reversed_sweep = True
                 break
 
-        # === Check for confluence with unmitigated FVGs ===
         relevant_fvgs = fvgs[(fvgs['start_time'] <= end_time) & (~fvgs['mitigated'])]
         for _, fvg in relevant_fvgs.iterrows():
             if pool['type'] == 'HIGH' and fvg['type'] == 'DOWN' and abs(fvg['midpoint'] - pool['price']) <= tolerance:
@@ -168,59 +131,107 @@ def detect_liquidity_pools(pivots, df, fvgs, tolerance=8.0, min_count=2):
     return pd.DataFrame(mitigated_pools)
 
 # === Fib Zone Detection with Golden Pocket ===
-def detect_fib_zones(pivots, df, min_range=40.0):
+def detect_fib_zones(pivots, df, min_range=30.0, lookahead=4):
     fib_zones = []
     if len(pivots) < 2:
         return pd.DataFrame(columns=['start_time', 'end_time', 'golden_high', 'golden_low', 'direction'])
 
     for i in range(len(pivots) - 1):
         p1 = pivots.iloc[i]
-        p2 = pivots.iloc[i+1]
-        if p1['type'] == 'LOW' and p2['type'] == 'HIGH':
-            low, high = p1['price'], p2['price']
-            direction = 'UP'
-        elif p1['type'] == 'HIGH' and p2['type'] == 'LOW':
-            high, low = p1['price'], p2['price']
-            direction = 'DOWN'
-        else:
-            continue
+        for j in range(i + 1, min(i + lookahead + 1, len(pivots))):
+            p2 = pivots.iloc[j]
 
-        if abs(high - low) < min_range:
-            continue
+            if p1['type'] == 'LOW' and p2['type'] == 'HIGH':
+                low, high = p1['price'], p2['price']
+                direction = 'UP'
+            elif p1['type'] == 'HIGH' and p2['type'] == 'LOW':
+                high, low = p1['price'], p2['price']
+                direction = 'DOWN'
+            else:
+                continue
 
-        golden_low = high - (high - low) * 0.79
-        golden_high = high - (high - low) * 0.62
-        if direction == 'DOWN':
-            golden_low = low + (high - low) * 0.62
-            golden_high = low + (high - low) * 0.79
+            if abs(high - low) < min_range:
+                continue
 
-        # Mitigation logic
-        midpoint = (golden_high + golden_low) / 2
-        mitigated = False
-        end_time = df.iloc[-1]['timestamp']
-        for _, bar in df[df['timestamp'] > p2['timestamp']].iterrows():
-            if direction == 'UP' and bar['low'] <= midpoint:
-                mitigated = True
-                end_time = bar['timestamp']
-                break
-            elif direction == 'DOWN' and bar['high'] >= midpoint:
-                mitigated = True
-                end_time = bar['timestamp']
-                break
+            golden_low = high - (high - low) * 0.79
+            golden_high = high - (high - low) * 0.62
+            if direction == 'DOWN':
+                golden_low = low + (high - low) * 0.62
+                golden_high = low + (high - low) * 0.79
 
-        fib_zones.append({
-            'start_time': p1['timestamp'],
-            'end_time': end_time,
-            'golden_high': golden_high,
-            'golden_low': golden_low,
-            'direction': direction,
-            'mitigated': mitigated
-        })
+            midpoint = (golden_high + golden_low) / 2
+            mitigated = False
+            end_time = df.iloc[-1].name
+            mask = df.index > (p2['timestamp'] if 'timestamp' in p2 else p2.name)
+            for _, bar in df[mask].iterrows():
+                if direction == 'UP' and bar['low'] <= midpoint:
+                    mitigated = True
+                    end_time = bar.name
+                    break
+                elif direction == 'DOWN' and bar['high'] >= midpoint:
+                    mitigated = True
+                    end_time = bar.name
+                    break
+
+            fib_zones.append({
+                'start_time': p1['timestamp'] if 'timestamp' in p1 else p1.name,
+                'end_time': end_time,
+                'golden_high': golden_high,
+                'golden_low': golden_low,
+                'direction': direction,
+                'mitigated': mitigated
+            })
 
     return pd.DataFrame(fib_zones)
 
+# === Clean Trend-Based Pivot Reduction ===
+def reduce_to_major_swings(pivots):
+    reduced = []
+    direction = None
+    current_extreme = None
+
+    for i, row in pivots.iterrows():
+        hl = row['HighLow']
+        price = row['Level']
+
+        if pd.isna(hl):
+            continue
+
+        if direction is None:
+            direction = hl
+            current_extreme = (i, price, hl)
+            continue
+
+        if hl == direction:
+            if (hl == 1 and price > current_extreme[1]) or (hl == -1 and price < current_extreme[1]):
+                current_extreme = (i, price, hl)
+        else:
+            reduced.append({
+                'timestamp': current_extreme[0],
+                'price': current_extreme[1],
+                'type': 'HIGH' if current_extreme[2] == 1 else 'LOW'
+            })
+            direction = hl
+            current_extreme = (i, price, hl)
+
+    if current_extreme:
+        reduced.append({
+            'timestamp': current_extreme[0],
+            'price': current_extreme[1],
+            'type': 'HIGH' if current_extreme[2] == 1 else 'LOW'
+        })
+
+    return pd.DataFrame(reduced)
+
+
+
 # === Run detections ===
-pivots = zigzag(df)
+swings = detect_swing_highs_lows(df, distance=5, prominence=5)
+swings["type"] = swings["HighLow"].map({1: "HIGH", -1: "LOW"})
+swings["price"] = swings["Level"]
+swings["timestamp"] = swings.index
+pivots = reduce_to_major_swings(swings)
+
 fvgs = detect_fvgs(df)
 fib_zones = detect_fib_zones(pivots, df)
 liq_pools = detect_liquidity_pools(pivots, df, fvgs)
@@ -232,13 +243,13 @@ def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, filename="pine_overl
         f.write("indicator(\"ICT Pivots, Stop Hunts, FVGs, Liquidity Pools\", overlay=true)\n\n")
 
         for _, row in pivots.iterrows():
-            ts = pd.to_datetime(row['timestamp'])
-            label = 'Pivot High' if row['type'] == 'HIGH' else 'Pivot Low'
-            shape = 'labeldown' if row['type'] == 'HIGH' else 'labelup'
-            location = 'abovebar' if row['type'] == 'HIGH' else 'belowbar'
-            color = 'lime' if row['type'] == 'HIGH' else 'orange'
-            ts_str = ts.strftime('%Y-%m-%dT%H:%M:%S-04:00')
-            f.write(f"plotshape(time == timestamp(\"{ts_str}\"), location=location.{location}, style=shape.{shape}, text=\"{label}\", color=color.{color}, textcolor=color.white)\n")
+            ts = pd.to_datetime(row["timestamp"]).strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            is_low = row["type"] == "LOW"
+            swing_type = "labelup" if is_low else "labeldown"
+            location = "belowbar" if is_low else "abovebar"
+            color = "orange" if is_low else "lime"
+            label = "Low" if is_low else "High"
+            f.write(f"plotshape(time == timestamp(\"{ts}\"), location=location.{location}, style=shape.{swing_type}, text=\"{label}\", color=color.{color}, textcolor=color.white)\n")
 
         for _, row in fvgs.iterrows():
             ts_start = pd.to_datetime(row['start_time']).strftime('%Y-%m-%dT%H:%M:%S-04:00')
@@ -248,18 +259,18 @@ def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, filename="pine_overl
             f.write(f"box.new(left=timestamp(\"{ts_start}\"), right=timestamp(\"{ts_end}\"), top={y2}, bottom={y1}, xloc=xloc.bar_time, border_color=color.{color}, bgcolor=color.new(color.{color}, 85))\n")
 
         for _, row in liq_pools.iterrows():
-            ts_start = row['start_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
-            ts_end = row['end_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
+            ts_start = pd.to_datetime(row['start_time']).strftime('%Y-%m-%dT%H:%M:%S-04:00')
+            ts_end = pd.to_datetime(row['end_time']).strftime('%Y-%m-%dT%H:%M:%S-04:00')
             y = row['price']
             color = 'green' if row['type'] == 'HIGH' else 'red'
             if row['confluence']:
-                color = 'blue'  # highlight confluence differently
+                color = 'blue'
             thickness = '1' if row['mitigated'] else '2'
             f.write(f"line.new(x1=timestamp(\"{ts_start}\"), y1={y}, x2=timestamp(\"{ts_end}\"), y2={y}, xloc=xloc.bar_time, extend=extend.none, color=color.{color}, style=line.style_solid, width={thickness})\n")
 
         for _, row in fib_zones.iterrows():
-            ts_start = row['start_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
-            ts_end = row['end_time'].strftime('%Y-%m-%dT%H:%M:%S-04:00')
+            ts_start = pd.to_datetime(row['start_time']).strftime('%Y-%m-%dT%H:%M:%S-04:00')
+            ts_end = pd.to_datetime(row['end_time']).strftime('%Y-%m-%dT%H:%M:%S-04:00')
             color = 'green' if row['direction'] == 'UP' else 'red'
             if row['mitigated']:
                 color = 'gray'

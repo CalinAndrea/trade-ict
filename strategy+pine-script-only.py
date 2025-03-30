@@ -364,22 +364,23 @@ order_blocks = detect_order_blocks(df, pivots)
 structure = detect_structure(pivots, df)
 # breakers = detect_breaker_blocks(pivots, df)
 
-def detect_entry_signals(df, fvgs, pivots, structure):
+def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
     entries = []
 
     for i in range(10, len(df)):
         candle = df.iloc[i]
         ts = candle.name
 
-        # Only allow entries during NY session
+        # 🔹 1. Only allow entries during NY session
         if ts.time() < time(8, 35) or ts.time() > time(15, 0):
             continue
 
-        # Get most recent structure event
+        # 🔹 2. Get most recent structure event
         recent_struct = structure[structure['confirm_time'] < ts].tail(1)
         if recent_struct.empty:
             continue
 
+        # 🔹 3. Get valid FVGs that price interacts with now
         valid_fvgs = fvgs[
             (fvgs['activation_time'].notna()) &
             (ts >= fvgs['activation_time']) &
@@ -392,31 +393,33 @@ def detect_entry_signals(df, fvgs, pivots, structure):
             midpoint = fvg['midpoint']
             is_bullish = fvg['type'] == 'UP'
 
-            # Step 1: Ensure pivot before this FVG
+            # 🔹 4. Ensure pivot before this FVG
             pivot_before_fvg = pivots[pivots['timestamp'] < fvg['start_time']]
             if pivot_before_fvg.empty:
                 continue
 
-            # Step 2: Ensure FVG not mitigated by the time of entry
+            # 🔹 5. FVG not mitigated before entry
             price_range = df[(df.index > fvg['activation_time']) & (df.index < ts)]
             if is_bullish and any(price_range['low'] <= midpoint):
                 continue
             if not is_bullish and any(price_range['high'] >= midpoint):
                 continue
 
-            # Step 3: Structure must align with FVG direction
+            # 🔹 6. Structure must align with FVG direction
             struct = recent_struct.iloc[0]
-
             if is_bullish and struct['direction'] != 'BULLISH':
                 continue
             if not is_bullish and struct['direction'] != 'BEARISH':
                 continue
 
+            # 🔹 7. Order Block confluence — unmitigated OB before FVG, directionally aligned
+            ob_buffer_candles = 2
+            ob_time_cutoff = fvg['start_time'] - pd.Timedelta(minutes=5 * ob_buffer_candles)
 
-            # ✅ Step 4: Create entry
+            # ✅ 8. Entry creation (static R:R)
             entry = midpoint
             stop = entry - 20 if is_bullish else entry + 20
-            target = entry + 40 if is_bullish else entry - 40
+            target = entry + 60 if is_bullish else entry - 60
 
             entries.append({
                 'timestamp': ts,
@@ -424,16 +427,20 @@ def detect_entry_signals(df, fvgs, pivots, structure):
                 'entry': entry,
                 'stop': stop,
                 'target': target,
-                'reason': 'Unmitigated FVG + Structure',
+                'reason': 'Unmitigated FVG + Structure + OB',
                 'fvg_start_time': fvg['start_time'],
                 'fvg_level1': fvg['level1'],
                 'fvg_level2': fvg['level2'],
                 'structure_type': struct['type'],
                 'structure_price': struct['price'],
                 'structure_confirm_time': struct['confirm_time'],
+                # 'ob_start': ob_row['start_time'],
+                # 'ob_end': ob_row['end_time'],
+                # 'ob_price': ob_row['price'],
             })
 
     return pd.DataFrame(entries)
+
 
 def simulate_trade_exits(entries, df):
     exit_times = []
@@ -528,11 +535,31 @@ def export_entry_signals_to_pine(entries, df, filename="entry_positions_overlay.
             fvg_color = "green" if row['fvg_level1'] < row['fvg_level2'] else "red"
             f.write(f"box.new(left=timestamp(\"{fvg_start_str}\"), right=timestamp(\"{ts_str}\"), top={fvg_top}, bottom={fvg_bottom}, xloc=xloc.bar_time, border_color=color.{fvg_color}, bgcolor=color.new(color.{fvg_color}, 85))\n")
 
+            # if pd.notna(row.get('ob_start')) and pd.notna(row.get('ob_price')):
+            #     try:
+            #         ob_start = pd.to_datetime(row['ob_start'])
+            #         ob_price = round(row['ob_price'], 2)
+
+            #         # Extend for 10 candles (each 5m = 300 seconds)
+            #         ob_end = ob_start + pd.Timedelta(minutes=5 * 10)
+            #         ob_start_str = ob_start.strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            #         ob_end_str   = ob_end.strftime("%Y-%m-%dT%H:%M:%S-04:00")
+
+            #         f.write(
+            #             f"line.new(x1=timestamp(\"{ob_start_str}\"), x2=timestamp(\"{ob_end_str}\"), "
+            #             f"y1={ob_price}, y2={ob_price}, xloc=xloc.bar_time, extend=extend.none, "
+            #             f"color=color.orange, style=line.style_dotted, width=1)\n"
+            #         )
+            #     except Exception as e:
+            #         print(f"⚠️ OB export error: {e}")
+
+
+
 
 def is_unmitigated_at_time(fvg_or_gp_row, ts):
     return ts < fvg_or_gp_row['end_time']
 
-entries = detect_entry_signals(df, fvgs, pivots, structure)
+entries = detect_entry_signals(df, fvgs, pivots, structure, order_blocks)
 entries = simulate_trade_exits(entries, df)
 
 entries.to_csv("entry_signals_fvg_gp.csv", index=False)

@@ -247,7 +247,7 @@ def reduce_to_major_swings(pivots):
 
     return pd.DataFrame(reduced)
 
-def detect_order_blocks(df, pivots, min_range=30):
+def detect_order_blocks(df, pivots, structure, min_range=30, pivot_confirm_delay=3):
     blocks = []
     for i in range(1, len(pivots)):
         prev = pivots.iloc[i - 1]
@@ -256,30 +256,64 @@ def detect_order_blocks(df, pivots, min_range=30):
         if range_size < min_range:
             continue
 
+        # Delay OB visibility until 'pivot_confirm_delay' candles after the second pivot
+        curr_index = df.index.get_loc(curr['timestamp'])
+        if curr_index + pivot_confirm_delay >= len(df):
+            continue  # Not enough candles to confirm in real time
+
+        visible_time = df.index[curr_index + pivot_confirm_delay]  # OB is visible from this point
+
         range_df = df[(df.index >= prev['timestamp']) & (df.index <= curr['timestamp'])]
 
-        if prev['type'] == 'LOW' and curr['type'] == 'HIGH':
-            ob_type = 'BULLISH'
-            ob_candle = range_df.loc[range_df['low'].idxmin()]
-        elif prev['type'] == 'HIGH' and curr['type'] == 'LOW':
-            ob_type = 'BEARISH'
-            ob_candle = range_df.loc[range_df['high'].idxmax()]
-        else:
+        ob_candle = None
+        ob_type = None
+        level1 = level2 = None
+        start_time = None
+
+        # 🔍 Look through each candle in the range
+        for ts, candle in range_df.iterrows():
+            is_bullish = candle['close'] > candle['open']
+            is_bearish = candle['close'] < candle['open']
+
+            if prev['type'] == 'LOW' and curr['type'] == 'HIGH' and is_bullish:
+                if ob_candle is None or candle['low'] < ob_candle['low']:
+                    ob_type = 'BULLISH'
+                    ob_candle = candle
+                    level1 = candle['low']
+                    level2 = candle['high']
+                    start_time = ts
+
+            elif prev['type'] == 'HIGH' and curr['type'] == 'LOW' and is_bearish:
+                if ob_candle is None or candle['high'] > ob_candle['high']:
+                    ob_type = 'BEARISH'
+                    ob_candle = candle
+                    level1 = candle['high']
+                    level2 = candle['low']
+                    start_time = ts
+
+        if ob_candle is None or ob_type is None:
             continue
 
         price = (ob_candle['open'] + ob_candle['close']) / 2
-        ob_time = ob_candle.name
 
-        # Look for the next opposite swing to mark the end of the move
-        future_pivots = pivots[pivots['timestamp'] > curr['timestamp']]
-        opposite_type = 'LOW' if curr['type'] == 'HIGH' else 'HIGH'
-        next_swing = future_pivots[future_pivots['type'] == opposite_type]
-
-        if next_swing.empty:
+        # 🔹 Filter OBs with candle direction mismatch
+        if ob_type == 'BULLISH' and ob_candle['close'] < ob_candle['open']:
+            continue
+        if ob_type == 'BEARISH' and ob_candle['close'] > ob_candle['open']:
             continue
 
-        swing_confirm_time = next_swing.iloc[0]['timestamp']
-        mitigation_df = df[df.index > swing_confirm_time]
+        # 🔹 Find most recent structure before or at OB visibility time
+        relevant_structure = structure[structure['confirm_time'] <= visible_time]
+        if relevant_structure.empty:
+            continue
+
+        last_structure = relevant_structure.iloc[-1]
+        if (ob_type == 'BULLISH' and last_structure['direction'] != 'BULLISH') or \
+           (ob_type == 'BEARISH' and last_structure['direction'] != 'BEARISH'):
+            continue  # Filter: only align with last structure direction
+
+        # 🔹 Look for mitigation *after* OB is visible
+        mitigation_df = df[(df.index > visible_time)]
 
         mitigated = False
         end_time = df.iloc[-1].name
@@ -294,11 +328,17 @@ def detect_order_blocks(df, pivots, min_range=30):
                 break
 
         blocks.append({
-            'start_time': ob_time,
+            'start_time': start_time,
             'end_time': end_time,
             'price': price,
             'type': ob_type,
-            'mitigated': mitigated
+            'mitigated': mitigated,
+            'level1': level1,
+            'level2': level2,
+            'visible_time': visible_time,
+            'structure_type': last_structure['type'],
+            'structure_confirm_time': last_structure['confirm_time'],
+            'structure_price': last_structure['price']
         })
 
     return pd.DataFrame(blocks)
@@ -360,8 +400,9 @@ pivots = reduce_to_major_swings(swings)
 fvgs = detect_fvgs(df)
 fib_zones = detect_fib_zones(pivots, df)
 liq_pools = detect_liquidity_pools(pivots, df, fvgs)
-order_blocks = detect_order_blocks(df, pivots)
 structure = detect_structure(pivots, df)
+
+order_blocks = detect_order_blocks(df, pivots, structure)
 # breakers = detect_breaker_blocks(pivots, df)
 
 def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
@@ -372,18 +413,17 @@ def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
         ts = candle.name
         ts_time = ts.time()
 
-        # 🔹 1. Only allow entries during Silver Bullet session (10:00 AM to 2:00 PM ET)
-        in_sb_am = time(10, 0) <= ts_time <= time(11, 0)
-        in_sb_pm = time(13, 0) <= ts_time <= time(14, 0)
-        if not (in_sb_am or in_sb_pm):
+        # 🔹 1. Only during Silver Bullet sessions
+        if not (time(10, 0) <= ts_time <= time(11, 0) or time(13, 0) <= ts_time <= time(14, 0)):
             continue
 
-        # 🔹 2. Get most recent structure event
+        # 🔹 2. Most recent structure before this time
         recent_struct = structure[structure['confirm_time'] < ts].tail(1)
         if recent_struct.empty:
             continue
+        struct = recent_struct.iloc[0]
 
-        # 🔹 3. Get valid FVGs that price interacts with now
+        # 🔹 3. Valid FVGs interacting now
         valid_fvgs = fvgs[
             (fvgs['activation_time'].notna()) &
             (ts >= fvgs['activation_time']) &
@@ -396,9 +436,9 @@ def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
             midpoint = fvg['midpoint']
             is_bullish = fvg['type'] == 'UP'
 
-            # 🔹 4. Ensure pivot before this FVG
-            pivot_before_fvg = pivots[pivots['timestamp'] < fvg['start_time']]
-            if pivot_before_fvg.empty:
+            # 🔹 4. Pivot before FVG
+            pivot_before = pivots[pivots['timestamp'] < fvg['start_time']]
+            if pivot_before.empty:
                 continue
 
             # 🔹 5. FVG not mitigated before entry
@@ -408,18 +448,42 @@ def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
             if not is_bullish and any(price_range['high'] >= midpoint):
                 continue
 
-            # 🔹 6. Structure must align with FVG direction
-            struct = recent_struct.iloc[0]
+            # 🔹 6. Structure matches direction
             if is_bullish and struct['direction'] != 'BULLISH':
                 continue
             if not is_bullish and struct['direction'] != 'BEARISH':
                 continue
 
-            # 🔹 7. Order Block confluence — unmitigated OB before FVG, directionally aligned
-            ob_buffer_candles = 2
-            ob_time_cutoff = fvg['start_time'] - pd.Timedelta(minutes=5 * ob_buffer_candles)
+# 🔹 7. Order Block confluence — pick most recent OB before ENTRY time that was unmitigated at ENTRY time
+            historical_obs = order_blocks[(order_blocks['visible_time'] <= ts)].copy()
 
-            # ✅ 8. Entry creation (static R:R)
+            candidate_obs = historical_obs[
+                (historical_obs['structure_confirm_time'] <= ts) &
+                (historical_obs['type'] == ('BULLISH' if is_bullish else 'BEARISH')) &
+                (historical_obs['start_time'] <= fvg['start_time'])
+            ]
+
+            if candidate_obs.empty:
+                continue
+
+            # Filter OBs that were not mitigated by entry time
+            candidate_obs['was_mitigated_by_ts'] = candidate_obs.apply(
+                lambda ob: any(
+                    df[(df.index > ob['start_time']) & (df.index < ts)]['low'] <= ob['price']
+                    if ob['type'] == 'BULLISH'
+                    else df[(df.index > ob['start_time']) & (df.index < ts)]['high'] >= ob['price']
+                ), axis=1
+            )
+
+            filtered_obs = candidate_obs[~candidate_obs['was_mitigated_by_ts']]
+
+            if filtered_obs.empty:
+                continue
+
+            # Select the most recent OB
+            selected_ob = filtered_obs.sort_values('start_time', ascending=False).iloc[0]
+
+            # 🔹 8. Create trade entry
             entry = midpoint
             stop = entry - 20 if is_bullish else entry + 20
             target = entry + 60 if is_bullish else entry - 60
@@ -437,12 +501,16 @@ def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
                 'structure_type': struct['type'],
                 'structure_price': struct['price'],
                 'structure_confirm_time': struct['confirm_time'],
-                # 'ob_start': ob_row['start_time'],
-                # 'ob_end': ob_row['end_time'],
-                # 'ob_price': ob_row['price'],
+                'ob_start': selected_ob['start_time'],
+                'ob_end': selected_ob['end_time'],
+                'ob_price': selected_ob['price'],
+                'ob_type': selected_ob['type'],
+                'ob_level1': selected_ob['level1'],
+                'ob_level2': selected_ob['level2']
             })
 
     return pd.DataFrame(entries)
+
 
 
 def simulate_trade_exits(entries, df):
@@ -538,25 +606,15 @@ def export_entry_signals_to_pine(entries, df, filename="entry_positions_overlay.
             fvg_color = "green" if row['fvg_level1'] < row['fvg_level2'] else "red"
             f.write(f"box.new(left=timestamp(\"{fvg_start_str}\"), right=timestamp(\"{ts_str}\"), top={fvg_top}, bottom={fvg_bottom}, xloc=xloc.bar_time, border_color=color.{fvg_color}, bgcolor=color.new(color.{fvg_color}, 85))\n")
 
-            # if pd.notna(row.get('ob_start')) and pd.notna(row.get('ob_price')):
-            #     try:
-            #         ob_start = pd.to_datetime(row['ob_start'])
-            #         ob_price = round(row['ob_price'], 2)
 
-            #         # Extend for 10 candles (each 5m = 300 seconds)
-            #         ob_end = ob_start + pd.Timedelta(minutes=5 * 10)
-            #         ob_start_str = ob_start.strftime("%Y-%m-%dT%H:%M:%S-04:00")
-            #         ob_end_str   = ob_end.strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            ts_start = row['ob_start'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            ts_end = row['ob_end'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            top = max(row['ob_level1'], row['ob_level2'])
+            bottom = min(row['ob_level1'], row['ob_level2'])
+            color = "green" if row['ob_type'] == "BULLISH" else "red"
 
-            #         f.write(
-            #             f"line.new(x1=timestamp(\"{ob_start_str}\"), x2=timestamp(\"{ob_end_str}\"), "
-            #             f"y1={ob_price}, y2={ob_price}, xloc=xloc.bar_time, extend=extend.none, "
-            #             f"color=color.orange, style=line.style_dotted, width=1)\n"
-            #         )
-            #     except Exception as e:
-            #         print(f"⚠️ OB export error: {e}")
-
-
+            f.write(f"box.new(left=timestamp(\"{ts_start}\"), right=timestamp(\"{ts_end}\"), top={top}, bottom={bottom}, "
+                    f"xloc=xloc.bar_time, extend=extend.none, border_color=color.{color}, bgcolor=color.new(color.{color}, 85))\n")
 
 
 def is_unmitigated_at_time(fvg_or_gp_row, ts):
@@ -611,14 +669,14 @@ def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, structure, order_blo
         f.write("//@version=6\n")
         f.write("indicator(\"ICT Pivots, Stop Hunts, FVGs, Liquidity Pools\", overlay=true)\n\n")
 
-        for _, row in pivots.iterrows():
-            ts = pd.to_datetime(row["timestamp"]).strftime("%Y-%m-%dT%H:%M:%S-04:00")
-            is_low = row["type"] == "LOW"
-            swing_type = "labelup" if is_low else "labeldown"
-            location = "belowbar" if is_low else "abovebar"
-            color = "orange" if is_low else "lime"
-            label = "Low" if is_low else "High"
-            f.write(f"plotshape(time == timestamp(\"{ts}\"), location=location.{location}, style=shape.{swing_type}, text=\"{label}\", color=color.{color}, textcolor=color.white)\n")
+        # for _, row in pivots.iterrows():
+        #     ts = pd.to_datetime(row["timestamp"]).strftime("%Y-%m-%dT%H:%M:%S-04:00")
+        #     is_low = row["type"] == "LOW"
+        #     swing_type = "labelup" if is_low else "labeldown"
+        #     location = "belowbar" if is_low else "abovebar"
+        #     color = "orange" if is_low else "lime"
+        #     label = "Low" if is_low else "High"
+        #     f.write(f"plotshape(time == timestamp(\"{ts}\"), location=location.{location}, style=shape.{swing_type}, text=\"{label}\", color=color.{color}, textcolor=color.white)\n")
 
         # for _, row in fvgs.iterrows():
         #     ts_start = pd.to_datetime(row['start_time']).strftime('%Y-%m-%dT%H:%M:%S-04:00')
@@ -647,6 +705,7 @@ def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, structure, order_blo
 
         for _, row in structure.iterrows():
             ts = row['timestamp'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            
             ts_confirm = row['confirm_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
             color = "blue" if row['type'] == "BOS" else "orange"
             y = row['price']
@@ -655,14 +714,20 @@ def export_overlay_pine(pivots, fvgs, liq_pools, fib_zones, structure, order_blo
             f.write(f"line.new(x1=timestamp(\"{ts}\"), x2=timestamp(\"{ts_confirm}\"), y1={y}, y2={y}, xloc=xloc.bar_time, extend=extend.none, color=color.{color})\n")
             f.write(f"label.new(x=timestamp(\"{mid_ts_str}\"), y={y}, text=\"{row['type']}\", style=label.style_none, color=color.new(color.{color}, 0), textcolor=color.{color}, xloc=xloc.bar_time)\n")
 
-        # for _, row in order_blocks.iterrows():
-        #     ts_start = row['start_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
-        #     ts_end = row['end_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
-        #     color = "gray" if row['mitigated'] else ("green" if row['type'] == "BULLISH" else "red")
-        #     top = row['price'] + 1
-        #     bottom = row['price'] - 1
-        #     f.write(f"box.new(left=timestamp(\"{ts_start}\"), right=timestamp(\"{ts_end}\"), top={top}, bottom={bottom}, xloc=xloc.bar_time, extend=extend.none, border_color=color.{color}, bgcolor=color.new(color.{color}, 85))\n")
+        for _, row in order_blocks.iterrows():
+            ts_start = row['start_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            ts_end = row['end_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            color = "gray" if row['mitigated'] else ("green" if row['type'] == "BULLISH" else "red")
 
+            top = max(row['level1'], row['level2'])
+            bottom = min(row['level1'], row['level2'])
+
+            f.write(
+                f"box.new(left=timestamp('{ts_start}'), right=timestamp('{ts_end}'), "
+                f"top={top}, bottom={bottom}, xloc=xloc.bar_time, "
+                f"extend=extend.none, border_color=color.{color}, "
+                f"bgcolor=color.new(color.{color}, 85))\n"
+            )
         # for _, row in breakers.iterrows():
         #     ts1 = row['start_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")
         #     ts2 = row['end_time'].strftime("%Y-%m-%dT%H:%M:%S-04:00")

@@ -1,35 +1,60 @@
 from ib_insync import *
+from datetime import datetime, timedelta
+import pandas as pd
 
-# ib = IB()
-# ib.connect('127.0.0.1', 7496, clientId=1)
+# Connect to TWS/IB Gateway
+ib = IB()
+ib.connect('127.0.0.1', 7496, clientId=1)
 
-# # Use local symbol directly
-# contract = Future(
-#     localSymbol='NQM5',
-#     exchange='CME',
-#     currency='USD'
-# )
+# Use local symbol directly
+contract = Future(
+    localSymbol='NQM5',
+    exchange='CME',
+    currency='USD'
+)
 
-# # Request contract details to verify it resolves
-# details = ib.reqContractDetails(contract)
-# if not details:
-#     print("❌ Contract could not be resolved with localSymbol.")
-#     ib.disconnect()
-#     exit()
+# Verify contract
+details = ib.reqContractDetails(contract)
+if not details:
+    print("❌ Contract could not be resolved with localSymbol.")
+    ib.disconnect()
+    exit()
 
-# resolved = details[0].contract
-# print(f"✅ Resolved Contract: {resolved.localSymbol}, Expiry: {resolved.lastTradeDateOrContractMonth}")
+resolved = details[0].contract
+print(f"✅ Resolved Contract: {resolved.localSymbol}, Expiry: {resolved.lastTradeDateOrContractMonth}")
 
-# # Request 5-min bars for 30 days (delayed or live depending on your account)
-# bars = ib.reqHistoricalData(
-#     resolved,
-#     endDateTime='',
-#     durationStr='30 D',
-#     barSizeSetting='5 mins',
-#     whatToShow='TRADES',
-#     useRTH=False,
-#     formatDate=1
-# )
+# Function to fetch one chunk of data
+def fetch_chunk(end_dt):
+    bars = ib.reqHistoricalData(
+        resolved,
+        endDateTime=end_dt.strftime('%Y%m%d %H:%M:%S'),
+        durationStr='30 D',
+        barSizeSetting='5 mins',
+        whatToShow='TRADES',
+        useRTH=False,
+        formatDate=1
+    )
+    return util.df(bars)
+
+# Get the last 90 days in 3 chunks
+now = datetime.now()
+chunks = []
+for i in range(3):
+    end_dt = now - timedelta(days=i * 30)
+    print(f"📥 Fetching chunk ending on {end_dt.strftime('%Y-%m-%d')}")
+    df = fetch_chunk(end_dt)
+    chunks.append(df)
+
+# Combine chunks
+full_df = pd.concat(chunks).drop_duplicates(subset='date').sort_values('date')
+full_df.set_index('date', inplace=True)
+full_df = full_df[['open', 'high', 'low', 'close', 'volume']]
+
+# Save to CSV
+full_df.to_csv('nq_5min_90d.csv')
+print("✅ Saved 90 days of 5-min data to nq_5min_90d.csv")
+
+ib.disconnect()
 
 # Save to CSV
 import pandas as pd
@@ -37,7 +62,7 @@ import pandas as pd
 # ib.disconnect()
 
 # Load your IBKR-exported CSV
-df = pd.read_csv("NQM5_5m_30d.csv")  # change to your filename
+df = pd.read_csv("nq_5min_90d.csv")  # change to your filename
 df['datetime'] = pd.to_datetime(df['date'])
 
 # Localize as Chicago time (CME/GLOBEX is Chicago)
@@ -54,4 +79,4 @@ df_out = df[['time', 'open', 'high', 'low', 'close', 'volume']].copy()
 df_out.columns = ['time', 'open', 'high', 'low', 'close', 'volume']
 
 # Export to your preferred format
-df_out.to_csv("NQM5_5m_30d_nytime.csv", index=False)
+df_out.to_csv("NQM5_5m_90d_nytime.csv", index=False)

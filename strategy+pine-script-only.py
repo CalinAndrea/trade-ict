@@ -370,9 +370,12 @@ def detect_entry_signals(df, fvgs, pivots, structure, order_blocks):
     for i in range(10, len(df)):
         candle = df.iloc[i]
         ts = candle.name
+        ts_time = ts.time()
 
-        # 🔹 1. Only allow entries during NY session
-        if ts.time() < time(8, 35) or ts.time() > time(15, 0):
+        # 🔹 1. Only allow entries during Silver Bullet session (10:00 AM to 2:00 PM ET)
+        in_sb_am = time(10, 0) <= ts_time <= time(11, 0)
+        in_sb_pm = time(13, 0) <= ts_time <= time(14, 0)
+        if not (in_sb_am or in_sb_pm):
             continue
 
         # 🔹 2. Get most recent structure event

@@ -2,64 +2,224 @@
 indicator("ICT Pivots, Stop Hunts, FVGs, Liquidity Pools", overlay=true)
 
 
-box.new(left=timestamp('2025-03-24T04:00:00-04:00'), right=timestamp('2025-03-26T11:55:00-04:00'), top=20187.5, bottom=20158.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-17T09:00:00-04:00'), right=timestamp('2025-02-17T21:45:00-04:00'), top=22500.0, bottom=22491.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-24T07:00:00-04:00'), right=timestamp('2025-03-26T11:50:00-04:00'), top=20224.5, bottom=20210.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-18T02:30:00-04:00'), right=timestamp('2025-02-18T09:00:00-04:00'), top=22557.25, bottom=22557.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-24T08:15:00-04:00'), right=timestamp('2025-03-24T09:30:00-04:00'), top=20249.0, bottom=20237.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-18T09:00:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=22558.0, bottom=22544.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
 
-box.new(left=timestamp('2025-03-24T15:35:00-04:00'), right=timestamp('2025-03-24T16:25:00-04:00'), top=20372.25, bottom=20360.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-18T11:45:00-04:00'), right=timestamp('2025-02-18T15:45:00-04:00'), top=22453.25, bottom=22443.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-25T09:10:00-04:00'), right=timestamp('2025-03-25T10:10:00-04:00'), top=20434.75, bottom=20423.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-18T16:45:00-04:00'), right=timestamp('2025-02-19T05:30:00-04:00'), top=22459.25, bottom=22454.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-25T13:05:00-04:00'), right=timestamp('2025-03-25T15:45:00-04:00'), top=20480.0, bottom=20466.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-19T06:45:00-04:00'), right=timestamp('2025-02-19T08:45:00-04:00'), top=22449.75, bottom=22444.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-25T14:05:00-04:00'), right=timestamp('2025-03-25T14:40:00-04:00'), top=20427.25, bottom=20402.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-19T07:45:00-04:00'), right=timestamp('2025-02-19T11:45:00-04:00'), top=22493.0, bottom=22469.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-26T01:20:00-04:00'), right=timestamp('2025-03-26T03:25:00-04:00'), top=20494.75, bottom=20488.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-19T12:45:00-04:00'), right=timestamp('2025-02-19T14:00:00-04:00'), top=22495.75, bottom=22477.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-26T07:50:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=20493.0, bottom=20484.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-19T14:45:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=22538.0, bottom=22526.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
 
-box.new(left=timestamp('2025-03-26T09:05:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=20486.5, bottom=20468.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-19T18:00:00-04:00'), right=timestamp('2025-02-21T08:30:00-04:00'), top=22475.0, bottom=22470.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-26T09:35:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=20475.0, bottom=20428.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-20T09:00:00-04:00'), right=timestamp('2025-02-21T08:00:00-04:00'), top=22464.75, bottom=22451.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-26T11:20:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=20320.5, bottom=20287.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-20T18:45:00-04:00'), right=timestamp('2025-02-21T04:30:00-04:00'), top=22409.0, bottom=22403.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-26T14:30:00-04:00'), right=timestamp('2025-03-26T15:50:00-04:00'), top=20146.5, bottom=20113.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-20T22:30:00-04:00'), right=timestamp('2025-02-21T04:15:00-04:00'), top=22393.5, bottom=22393.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T01:40:00-04:00'), right=timestamp('2025-03-27T10:35:00-04:00'), top=20144.0, bottom=20138.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-21T08:45:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=22485.0, bottom=22470.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
 
-box.new(left=timestamp('2025-03-27T04:50:00-04:00'), right=timestamp('2025-03-27T06:55:00-04:00'), top=20085.5, bottom=20066.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-21T16:45:00-04:00'), right=timestamp('2025-02-24T09:45:00-04:00'), top=21906.0, bottom=21882.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T07:05:00-04:00'), right=timestamp('2025-03-27T07:55:00-04:00'), top=20097.0, bottom=20081.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-24T03:15:00-04:00'), right=timestamp('2025-02-24T09:30:00-04:00'), top=21966.25, bottom=21940.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T09:05:00-04:00'), right=timestamp('2025-03-27T10:00:00-04:00'), top=20081.75, bottom=20061.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-24T04:30:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=22050.0, bottom=22050.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
 
-box.new(left=timestamp('2025-03-27T12:00:00-04:00'), right=timestamp('2025-03-27T12:45:00-04:00'), top=20075.5, bottom=20039.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-24T06:30:00-04:00'), right=timestamp('2025-02-24T08:45:00-04:00'), top=22019.0, bottom=22019.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T13:15:00-04:00'), right=timestamp('2025-03-27T14:05:00-04:00'), top=20070.75, bottom=20048.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-24T09:00:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=22033.0, bottom=22010.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
 
-box.new(left=timestamp('2025-03-27T14:30:00-04:00'), right=timestamp('2025-03-27T15:10:00-04:00'), top=20069.25, bottom=20038.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-24T18:00:00-04:00'), right=timestamp('2025-02-24T19:45:00-04:00'), top=21679.5, bottom=21665.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T16:45:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=20019.0, bottom=20013.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-24T18:45:00-04:00'), right=timestamp('2025-02-25T02:00:00-04:00'), top=21622.0, bottom=21600.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T19:55:00-04:00'), right=timestamp('2025-03-27T20:35:00-04:00'), top=19975.5, bottom=19963.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-24T20:30:00-04:00'), right=timestamp('2025-02-25T01:00:00-04:00'), top=21684.0, bottom=21674.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-27T21:55:00-04:00'), right=timestamp('2025-03-27T23:35:00-04:00'), top=19975.25, bottom=19960.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-25T01:15:00-04:00'), right=timestamp('2025-02-25T08:15:00-04:00'), top=21681.25, bottom=21665.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T01:45:00-04:00'), right=timestamp('2025-03-28T02:45:00-04:00'), top=19972.0, bottom=19964.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-25T11:30:00-04:00'), right=timestamp('2025-02-27T09:45:00-04:00'), top=21300.0, bottom=21228.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T03:20:00-04:00'), right=timestamp('2025-03-28T06:10:00-04:00'), top=19945.25, bottom=19933.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-25T15:15:00-04:00'), right=timestamp('2025-02-25T18:00:00-04:00'), top=21481.5, bottom=21428.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T04:30:00-04:00'), right=timestamp('2025-03-28T08:40:00-04:00'), top=19872.5, bottom=19853.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-25T21:00:00-04:00'), right=timestamp('2025-02-26T09:30:00-04:00'), top=21448.0, bottom=21446.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T05:50:00-04:00'), right=timestamp('2025-03-28T08:30:00-04:00'), top=19909.75, bottom=19897.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+box.new(left=timestamp('2025-02-26T03:15:00-04:00'), right=timestamp('2025-02-26T07:45:00-04:00'), top=21509.0, bottom=21502.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T09:15:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=19966.0, bottom=19937.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-26T06:15:00-04:00'), right=timestamp('2025-02-26T10:00:00-04:00'), top=21559.75, bottom=21559.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T11:35:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=19632.0, bottom=19613.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-26T08:30:00-04:00'), right=timestamp('2025-02-26T10:30:00-04:00'), top=21560.0, bottom=21549.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T12:05:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=19582.5, bottom=19555.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-26T22:30:00-04:00'), right=timestamp('2025-02-27T00:15:00-04:00'), top=21435.75, bottom=21415.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
 
-box.new(left=timestamp('2025-03-28T12:50:00-04:00'), right=timestamp('2025-03-28T16:55:00-04:00'), top=19532.75, bottom=19511.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+box.new(left=timestamp('2025-02-27T02:15:00-04:00'), right=timestamp('2025-02-27T04:00:00-04:00'), top=21553.25, bottom=21534.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-27T03:00:00-04:00'), right=timestamp('2025-02-27T09:30:00-04:00'), top=21500.5, bottom=21485.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-27T13:15:00-04:00'), right=timestamp('2025-03-03T07:15:00-04:00'), top=21343.75, bottom=21311.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-27T19:00:00-04:00'), right=timestamp('2025-02-28T03:30:00-04:00'), top=20910.75, bottom=20894.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-27T22:45:00-04:00'), right=timestamp('2025-02-28T09:30:00-04:00'), top=20767.0, bottom=20745.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-28T01:15:00-04:00'), right=timestamp('2025-02-28T03:30:00-04:00'), top=20865.0, bottom=20849.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-28T08:15:00-04:00'), right=timestamp('2025-02-28T09:30:00-04:00'), top=20824.75, bottom=20787.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-28T12:15:00-04:00'), right=timestamp('2025-02-28T15:00:00-04:00'), top=20963.75, bottom=20913.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-02-28T15:15:00-04:00'), right=timestamp('2025-03-03T13:00:00-04:00'), top=20988.5, bottom=20915.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-03T01:00:00-04:00'), right=timestamp('2025-03-03T02:45:00-04:00'), top=21211.0, bottom=21190.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-03T01:45:00-04:00'), right=timestamp('2025-03-03T04:45:00-04:00'), top=21248.0, bottom=21227.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-03T12:30:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=21189.5, bottom=21140.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-03T14:30:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=21045.0, bottom=20958.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-04T01:45:00-04:00'), right=timestamp('2025-03-04T14:00:00-04:00'), top=20802.0, bottom=20773.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-04T03:00:00-04:00'), right=timestamp('2025-03-04T05:00:00-04:00'), top=20708.0, bottom=20690.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-04T06:00:00-04:00'), right=timestamp('2025-03-04T13:00:00-04:00'), top=20708.25, bottom=20700.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-04T15:15:00-04:00'), right=timestamp('2025-03-05T14:00:00-04:00'), top=20954.75, bottom=20870.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-04T18:30:00-04:00'), right=timestamp('2025-03-05T03:15:00-04:00'), top=20815.0, bottom=20800.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-05T03:00:00-04:00'), right=timestamp('2025-03-05T06:00:00-04:00'), top=20766.75, bottom=20747.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-05T04:45:00-04:00'), right=timestamp('2025-03-05T14:00:00-04:00'), top=20851.0, bottom=20831.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-05T19:15:00-04:00'), right=timestamp('2025-03-05T21:00:00-04:00'), top=20854.25, bottom=20849.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-05T22:15:00-04:00'), right=timestamp('2025-03-06T02:30:00-04:00'), top=20818.0, bottom=20818.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-06T02:00:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=20862.5, bottom=20851.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-06T05:15:00-04:00'), right=timestamp('2025-03-06T07:00:00-04:00'), top=20656.75, bottom=20626.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-06T06:00:00-04:00'), right=timestamp('2025-03-06T07:45:00-04:00'), top=20607.75, bottom=20580.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-06T06:45:00-04:00'), right=timestamp('2025-03-06T10:00:00-04:00'), top=20651.25, bottom=20636.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-06T09:30:00-04:00'), right=timestamp('2025-03-06T11:45:00-04:00'), top=20536.25, bottom=20450.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-06T14:30:00-04:00'), right=timestamp('2025-03-06T15:45:00-04:00'), top=20288.75, bottom=20202.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-07T00:30:00-04:00'), right=timestamp('2025-03-07T03:00:00-04:00'), top=20401.25, bottom=20391.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-07T01:45:00-04:00'), right=timestamp('2025-03-07T07:15:00-04:00'), top=20350.0, bottom=20330.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-07T06:30:00-04:00'), right=timestamp('2025-03-07T08:30:00-04:00'), top=20411.5, bottom=20394.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-07T09:45:00-04:00'), right=timestamp('2025-03-07T13:30:00-04:00'), top=20456.5, bottom=20354.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-07T12:15:00-04:00'), right=timestamp('2025-03-10T09:30:00-04:00'), top=20084.75, bottom=19984.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-10T00:15:00-04:00'), right=timestamp('2025-03-24T11:00:00-04:00'), top=20368.5, bottom=20356.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-10T07:15:00-04:00'), right=timestamp('2025-03-24T04:00:00-04:00'), top=20229.75, bottom=20199.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-10T09:00:00-04:00'), right=timestamp('2025-03-17T14:15:00-04:00'), top=20150.5, bottom=20093.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-10T13:15:00-04:00'), right=timestamp('2025-03-11T02:15:00-04:00'), top=19759.0, bottom=19702.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-10T15:00:00-04:00'), right=timestamp('2025-03-10T19:15:00-04:00'), top=19570.0, bottom=19474.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-10T20:00:00-04:00'), right=timestamp('2025-03-10T22:00:00-04:00'), top=19530.0, bottom=19483.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-11T01:45:00-04:00'), right=timestamp('2025-03-11T03:30:00-04:00'), top=19670.0, bottom=19650.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-11T03:30:00-04:00'), right=timestamp('2025-03-11T09:15:00-04:00'), top=19663.0, bottom=19614.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-11T13:30:00-04:00'), right=timestamp('2025-03-13T12:45:00-04:00'), top=19500.0, bottom=19404.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-11T19:30:00-04:00'), right=timestamp('2025-03-11T21:30:00-04:00'), top=19650.25, bottom=19635.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T00:00:00-04:00'), right=timestamp('2025-03-12T03:00:00-04:00'), top=19656.5, bottom=19650.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T02:00:00-04:00'), right=timestamp('2025-03-12T04:00:00-04:00'), top=19685.75, bottom=19663.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T04:15:00-04:00'), right=timestamp('2025-03-12T11:00:00-04:00'), top=19682.0, bottom=19656.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T08:15:00-04:00'), right=timestamp('2025-03-12T10:00:00-04:00'), top=19813.0, bottom=19777.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T11:00:00-04:00'), right=timestamp('2025-03-13T01:30:00-04:00'), top=19690.75, bottom=19600.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T18:45:00-04:00'), right=timestamp('2025-03-12T21:30:00-04:00'), top=19834.75, bottom=19813.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-12T20:00:00-04:00'), right=timestamp('2025-03-14T11:30:00-04:00'), top=19900.75, bottom=19890.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-13T00:00:00-04:00'), right=timestamp('2025-03-13T05:15:00-04:00'), top=19753.0, bottom=19725.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-13T06:15:00-04:00'), right=timestamp('2025-03-14T09:45:00-04:00'), top=19835.0, bottom=19809.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-13T13:45:00-04:00'), right=timestamp('2025-03-28T16:15:00-04:00'), top=19429.25, bottom=19372.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-14T06:30:00-04:00'), right=timestamp('2025-03-18T11:00:00-04:00'), top=19631.25, bottom=19605.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-14T14:15:00-04:00'), right=timestamp('2025-03-16T18:00:00-04:00'), top=19850.25, bottom=19819.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-17T18:30:00-04:00'), right=timestamp('2025-03-19T15:00:00-04:00'), top=20066.5, bottom=20056.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-17T21:00:00-04:00'), right=timestamp('2025-03-18T04:15:00-04:00'), top=20016.5, bottom=19995.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-18T00:15:00-04:00'), right=timestamp('2025-03-18T01:45:00-04:00'), top=19956.25, bottom=19943.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-19T01:00:00-04:00'), right=timestamp('2025-03-19T02:30:00-04:00'), top=19737.0, bottom=19722.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-19T21:45:00-04:00'), right=timestamp('2025-03-20T05:00:00-04:00'), top=20037.0, bottom=20025.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-20T01:45:00-04:00'), right=timestamp('2025-03-20T10:15:00-04:00'), top=20090.0, bottom=20072.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-20T04:30:00-04:00'), right=timestamp('2025-03-20T10:15:00-04:00'), top=20073.25, bottom=20056.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-20T18:30:00-04:00'), right=timestamp('2025-03-20T20:15:00-04:00'), top=19909.75, bottom=19893.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-20T19:15:00-04:00'), right=timestamp('2025-03-21T01:00:00-04:00'), top=19863.5, bottom=19847.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-21T03:00:00-04:00'), right=timestamp('2025-03-21T12:45:00-04:00'), top=19897.0, bottom=19871.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-21T08:00:00-04:00'), right=timestamp('2025-03-21T11:00:00-04:00'), top=19830.0, bottom=19791.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-21T11:30:00-04:00'), right=timestamp('2025-03-28T10:15:00-04:00'), top=19749.0, bottom=19679.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-21T15:00:00-04:00'), right=timestamp('2025-03-28T03:45:00-04:00'), top=19863.0, bottom=19812.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-23T19:00:00-04:00'), right=timestamp('2025-03-26T14:45:00-04:00'), top=20071.25, bottom=20056.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-24T02:00:00-04:00'), right=timestamp('2025-03-26T13:15:00-04:00'), top=20118.5, bottom=20110.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-26T01:15:00-04:00'), right=timestamp('2025-03-26T03:30:00-04:00'), top=20494.75, bottom=20481.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-26T02:30:00-04:00'), right=timestamp('2025-03-26T04:45:00-04:00'), top=20466.75, bottom=20453.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-26T03:30:00-04:00'), right=timestamp('2025-03-26T07:45:00-04:00'), top=20498.25, bottom=20487.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-26T07:45:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=20493.0, bottom=20481.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-26T09:00:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=20486.5, bottom=20468.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-27T15:15:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=20129.75, bottom=20083.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-28T01:45:00-04:00'), right=timestamp('2025-03-28T03:15:00-04:00'), top=19977.0, bottom=19964.25, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-28T02:15:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=20008.75, bottom=19995.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-28T05:45:00-04:00'), right=timestamp('2025-03-28T08:30:00-04:00'), top=19923.0, bottom=19897.75, xloc=xloc.bar_time, extend=extend.none, border_color=color.gray, bgcolor=color.new(color.gray, 85))
+
+box.new(left=timestamp('2025-03-28T09:15:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=19966.0, bottom=19900.5, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
+
+box.new(left=timestamp('2025-03-28T11:30:00-04:00'), right=timestamp('2025-03-28T16:45:00-04:00'), top=19632.0, bottom=19581.0, xloc=xloc.bar_time, extend=extend.none, border_color=color.red, bgcolor=color.new(color.red, 85))
